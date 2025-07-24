@@ -10,21 +10,34 @@ phases:
       # Comando de login corrigido.
       - aws ecr get-login-password --region ${REGION} | docker login --username AWS --password-stdin ${ACCOUNT}.dkr.ecr.${REGION}.amazonaws.com
 
+      # Usa o ID do commit como uma tag única para a imagem.
       - IMAGE_TAG=$(echo $CODEBUILD_RESOLVED_SOURCE_VERSION | cut -c 1-7)
 
   build:
     commands:
       - echo "Build started on $(date)"
-      # O comando 'dotnet publish' está correto para um projeto .NET.
+      - echo "Running dotnet publish..."
       - dotnet publish -c Release -o ./build_output MeuSite.csproj
 
-      # O comando 'docker build' também está correto.
+      - echo "Building the Docker image..."
       - docker build -t $REPO_URI:latest .
       - docker tag $REPO_URI:latest $REPO_URI:$IMAGE_TAG
 
   post_build:
     commands:
       - echo "Build completed on $(date)"
-      # O comando 'docker push' está correto.
+      - echo "Pushing the Docker image to $REPO_URI..."
       - docker push $REPO_URI:latest
       - docker push $REPO_URI:$IMAGE_TAG
+
+      # Cria o arquivo de definição de imagem para a etapa de Deploy do ECS.
+      - echo "Creating imagedefinitions.json..."
+      - printf '[{"name":"Projeto2","imageUri":"%s"}]' "${REPO_URI}:${IMAGE_TAG}" > imagedefinitions.json
+      - echo "Content of imagedefinitions.json:"
+      - cat imagedefinitions.json
+
+# Define os artefatos de saída do build.
+# O CodePipeline usará o 'imagedefinitions.json' na etapa de Deploy do ECS.
+artifacts:
+  files:
+    - imagedefinitions.json
