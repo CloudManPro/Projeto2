@@ -3,34 +3,28 @@ version: 0.2
 phases:
   pre_build:
     commands:
-      - echo "Logging in to Amazon ECR..."
-      # O CodeBuild usará sua IAM Role para se autenticar no ECR.
-      # Substitua 'SEU_ACCOUNT_ID' e 'sua-regiao' pelos seus valores.
-      - aws ecr get-login-password --region sua-regiao | docker login --username AWS --password-stdin SEU_ACCOUNT_ID.dkr.ecr.sua-regiao.amazonaws.com
-      - REPOSITORY_URI=SEU_ACCOUNT_ID.dkr.ecr.sua-regiao.amazonaws.com/projeto2
-      # Usaremos o ID do commit como uma tag única para a imagem, o que é uma ótima prática.
+      # Usando as variáveis de ambiente em MAIÚSCULAS.
+      - echo "Logging in to Amazon ECR in region $REGION..."
+      - REPO_URI="$ACCOUNT.dkr.ecr.$REGION.amazonaws.com/$AWS_ECR_REPOSITORY_TARGET_NAME_0"
+      
+      # Faz o login usando as variáveis de ambiente corretas.
+      - aws ecr get-login-password --region $REGION | docker login --username AWS --password-stdin $ACCOUNT.dkr.ecr.$REGION.amazonaws.com
+
       - IMAGE_TAG=$(echo $CODEBUILD_RESOLVED_SOURCE_VERSION | cut -c 1-7)
 
   build:
     commands:
       - echo "Build started on $(date)"
-      # PASSO 1: Compilar e publicar a aplicação .NET.
-      # O CodeBuild cria uma pasta limpa para os artefatos compilados.
       - echo "Running dotnet publish..."
       - dotnet publish -c Release -o ./build_output MeuSite.csproj
 
-      # PASSO 2: Construir a imagem Docker.
-      # O Dockerfile deve ser simples, apenas copiando os arquivos da pasta 'build_output'.
-      # O ponto final '.' indica que o contexto do build é a pasta atual.
       - echo "Building the Docker image..."
-      - docker build -t $REPOSITORY_URI:latest .
-      - docker tag $REPOSITORY_URI:latest $REPOSITORY_URI:$IMAGE_TAG
+      - docker build -t $REPO_URI:latest .
+      - docker tag $REPO_URI:latest $REPO_URI:$IMAGE_TAG
 
   post_build:
     commands:
       - echo "Build completed on $(date)"
-      # PASSO 3: Fazer o push da imagem para o Amazon ECR.
-      # Enviamos a imagem com duas tags: 'latest' e a tag do commit.
-      - echo "Pushing the Docker images to ECR..."
-      - docker push $REPOSITORY_URI:latest
-      - docker push $REPOSITORY_URI:$IMAGE_TAG
+      - echo "Pushing the Docker image to $REPO_URI..."
+      - docker push $REPO_URI:latest
+      - docker push $REPO_URI:$IMAGE_TAG
