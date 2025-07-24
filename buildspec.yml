@@ -1,36 +1,30 @@
 version: 0.2
 
-# ADICIONADO: Seção para importar as variáveis de ambiente do projeto.
-# Isso garante que $ACCOUNT e $REGION sejam substituídos corretamente nos comandos.
-env:
-  variables:
-    ACCOUNT: $ACCOUNT
-    REGION: $REGION
-    # Adicione aqui outras variáveis que você queira usar nos comandos
-    AWS_ECR_REPOSITORY_TARGET_NAME_0: $AWS_ECR_REPOSITORY_TARGET_NAME_0
-
 phases:
   pre_build:
     commands:
-      # Agora este comando funcionará, pois as variáveis serão substituídas.
-      - echo "Logging in to Amazon ECR in region $REGION..."
-      - REPO_URI="$ACCOUNT.dkr.ecr.$REGION.amazonaws.com/$AWS_ECR_REPOSITORY_TARGET_NAME_0"
-      - aws ecr get-login-password --region $REGION | docker login --username AWS --password-stdin $ACCOUNT.dkr.ecr.$REGION.amazonaws.com
+      # Usa a sintaxe ${VARIAVEL} para garantir a correta interpretação pelo shell.
+      - echo "Logging in to Amazon ECR in region ${REGION}..."
+      - REPO_URI="${ACCOUNT}.dkr.ecr.${REGION}.amazonaws.com/${AWS_ECR_REPOSITORY_TARGET_NAME_0}"
+      
+      # Comando de login corrigido.
+      - aws ecr get-login-password --region ${REGION} | docker login --username AWS --password-stdin ${ACCOUNT}.dkr.ecr.${REGION}.amazonaws.com
+
       - IMAGE_TAG=$(echo $CODEBUILD_RESOLVED_SOURCE_VERSION | cut -c 1-7)
 
   build:
     commands:
       - echo "Build started on $(date)"
-      - echo "Running dotnet publish..."
+      # O comando 'dotnet publish' está correto para um projeto .NET.
       - dotnet publish -c Release -o ./build_output MeuSite.csproj
 
-      - echo "Building the Docker image..."
+      # O comando 'docker build' também está correto.
       - docker build -t $REPO_URI:latest .
       - docker tag $REPO_URI:latest $REPO_URI:$IMAGE_TAG
 
   post_build:
     commands:
       - echo "Build completed on $(date)"
-      - echo "Pushing the Docker image to $REPO_URI..."
+      # O comando 'docker push' está correto.
       - docker push $REPO_URI:latest
       - docker push $REPO_URI:$IMAGE_TAG
