@@ -1,15 +1,21 @@
 version: 0.2
 
+# ADICIONADO: Seção para importar as variáveis de ambiente do projeto.
+# Isso garante que $ACCOUNT e $REGION sejam substituídos corretamente nos comandos.
+env:
+  variables:
+    ACCOUNT: $ACCOUNT
+    REGION: $REGION
+    # Adicione aqui outras variáveis que você queira usar nos comandos
+    AWS_ECR_REPOSITORY_TARGET_NAME_0: $AWS_ECR_REPOSITORY_TARGET_NAME_0
+
 phases:
   pre_build:
     commands:
-      # Usando as variáveis de ambiente em MAIÚSCULAS.
+      # Agora este comando funcionará, pois as variáveis serão substituídas.
       - echo "Logging in to Amazon ECR in region $REGION..."
       - REPO_URI="$ACCOUNT.dkr.ecr.$REGION.amazonaws.com/$AWS_ECR_REPOSITORY_TARGET_NAME_0"
-      
-      # Faz o login usando as variáveis de ambiente corretas.
       - aws ecr get-login-password --region $REGION | docker login --username AWS --password-stdin $ACCOUNT.dkr.ecr.$REGION.amazonaws.com
-
       - IMAGE_TAG=$(echo $CODEBUILD_RESOLVED_SOURCE_VERSION | cut -c 1-7)
 
   build:
