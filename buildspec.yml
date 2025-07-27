@@ -3,14 +3,9 @@ version: 0.2
 phases:
   pre_build:
     commands:
-      # Usa a sintaxe ${VARIAVEL} para garantir a correta interpretação pelo shell.
       - echo "Logging in to Amazon ECR in region ${REGION}..."
       - REPO_URI="${ACCOUNT}.dkr.ecr.${REGION}.amazonaws.com/${AWS_ECR_REPOSITORY_TARGET_NAME_0}"
-      
-      # Comando de login corrigido.
       - aws ecr get-login-password --region ${REGION} | docker login --username AWS --password-stdin ${ACCOUNT}.dkr.ecr.${REGION}.amazonaws.com
-
-      # Usa o ID do commit como uma tag única para a imagem.
       - IMAGE_TAG=$(echo $CODEBUILD_RESOLVED_SOURCE_VERSION | cut -c 1-7)
 
   build:
@@ -18,7 +13,6 @@ phases:
       - echo "Build started on $(date)"
       - echo "Running dotnet publish..."
       - dotnet publish -c Release -o ./build_output MeuSite.csproj
-
       - echo "Building the Docker image..."
       - docker build -t $REPO_URI:latest .
       - docker tag $REPO_URI:latest $REPO_URI:$IMAGE_TAG
@@ -30,17 +24,27 @@ phases:
       - docker push $REPO_URI:latest
       - docker push $REPO_URI:$IMAGE_TAG
 
-      # Cria o arquivo de definição de imagem para a etapa de Deploy do ECS.
+      # --- INÍCIO DA MODIFICAÇÃO PARA TESTE ---
+
+      # 1. Cria o imagedefinitions.json (como antes)
       - echo "Creating imagedefinitions.json..."
       - printf '[{"name":"Projeto2","imageUri":"%s"}]' "${REPO_URI}:${IMAGE_TAG}" > imagedefinitions.json
       - echo "Content of imagedefinitions.json:"
       - cat imagedefinitions.json
 
-# Define os artefatos de saída do build.
-# O CodePipeline usará o 'imagedefinitions.json' na etapa de Deploy do ECS.
+      # 2. Cria o appspec.yml HARDCODED para o teste
+      - echo "Creating HARDCODED appspec.yml for testing..."
+      - >
+        printf 'version: 0.0\nResources:\n  - TargetService:\n      Type: AWS::ECS::Service\n      Properties:\n        TaskDefinition: "%s"\n        LoadBalancerInfo:\n          ContainerName: "Projeto2"\n          ContainerPort: 80\n' \
+        "COLE_O_ARN_COMPLETO_DA_SUA_TASK_DEFINITION_AQUI" > appspec.yml
+      - echo "Content of appspec.yml:"
+      - cat appspec.yml
+      
+      # --- FIM DA MODIFICAÇÃO PARA TESTE ---
+
 artifacts:
   files:
+    # 3. Inclui AMBOS os arquivos no artefato de saída
     - imagedefinitions.json
-  # ADIÇÃO CRÍTICA: Descarta os caminhos do diretório original.
-  # Isso força o 'imagedefinitions.json' a ser colocado na raiz do arquivo .zip do artefato.
+    - appspec.yml
   discard-paths: yes
