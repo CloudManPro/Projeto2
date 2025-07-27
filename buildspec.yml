@@ -3,7 +3,6 @@ version: 0.2
 phases:
   pre_build:
     commands:
-      # As variáveis com sufixo _0 (ex: AWS_ECR_REPOSITORY_TARGET_NAME_0) já são usadas aqui
       - echo "Logging in to Amazon ECR in region ${REGION}..."
       - REPO_URI="${ACCOUNT}.dkr.ecr.${REGION}.amazonaws.com/${AWS_ECR_REPOSITORY_TARGET_NAME_0}"
       - aws ecr get-login-password --region ${REGION} | docker login --username AWS --password-stdin ${ACCOUNT}.dkr.ecr.${REGION}.amazonaws.com
@@ -24,34 +23,24 @@ phases:
       - echo "Pushing the Docker image to $REPO_URI..."
       - docker push $REPO_URI:latest
       - docker push $REPO_URI:$IMAGE_TAG
-
-      # --- INÍCIO DA NOVA LÓGICA DINÂMICA ---
-
-      # 1. Cria o imagedefinitions.json usando a variável CONTAINER_NAME_0
       - echo "Creating imagedefinitions.json..."
       - printf '[{"name":"%s","imageUri":"%s"}]' "${CONTAINER_NAME_0}" "${REPO_URI}:${IMAGE_TAG}" > imagedefinitions.json
       - echo "Content of imagedefinitions.json:"
       - cat imagedefinitions.json
-
-      # 2. Extrai a porta dinamicamente da variável Port_Mappings_0
-      # Este comando usa 'sed' para encontrar 'containerPort=' e extrair apenas os números que vêm depois.
       - echo "Extracting port from Port_Mappings_0 variable: ${Port_Mappings_0}"
       - EXTRACTED_PORT=$(echo "${Port_Mappings_0}" | sed -n 's/.*containerPort=\([0-9]*\).*/\1/p')
       - echo "Successfully extracted port: ${EXTRACTED_PORT}"
-
-      # 3. Cria o appspec.yml 100% DINÂMICO
       - echo "Creating DYNAMIC appspec.yml..."
       - >
         printf 'version: 0.0\nResources:\n  - TargetService:\n      Type: AWS::ECS::Service\n      Properties:\n        TaskDefinition: "%s"\n        LoadBalancerInfo:\n          ContainerName: "%s"\n          ContainerPort: %s\n' \
         "${TASK_DEFINITION_ARN_0}" "${CONTAINER_NAME_0}" "${EXTRACTED_PORT}" > appspec.yml
       - echo "Content of appspec.yml:"
       - cat appspec.yml
-      
-      # --- FIM DA NOVA LÓGICA DINÂMICA ---
 
+# A seção 'artifacts' deve estar aqui, no mesmo nível de 'phases'.
+# Ela NÃO PODE estar dentro da seção 'post_build'.
 artifacts:
   files:
-    # Garante que ambos os arquivos sejam incluídos no artefato de saída
     - imagedefinitions.json
     - appspec.yml
   discard-paths: yes
