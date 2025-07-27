@@ -32,9 +32,14 @@ phases:
       # --- CORREÇÃO DEFINITIVA ---
       # Usamos o pipe (|) para que o YAML trate o comando inteiro como um texto literal,
       # evitando o erro de parsing causado pelos dois-pontos (:) no conteúdo do appspec.
+      - |
+        printf 'version: 0.0\nResources:\n  - TargetService:\n      Type: AWS::ECS::Service\n      Properties:\n        TaskDefinition: "%s"\n        LoadBalancerInfo:\n          ContainerName: "%s"\n          ContainerPort: %s\n' "${TASK_DEFINITION_ARN_0}" "${CONTAINER_NAME_0}" "${EXTRACTED_PORT}" > appspec.yml
       
+      - echo "Content of appspec.yml:"
+      - cat appspec.yml
 
 artifacts:
   files:
     - imagedefinitions.json
+    - appspec.yml
   discard-paths: yes
