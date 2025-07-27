@@ -27,10 +27,8 @@ phases:
       - printf '[{"name":"%s","imageUri":"%s"}]' "${CONTAINER_NAME_0}" "${REPO_URI}:${IMAGE_TAG}" > imagedefinitions.json
       - echo "Content of imagedefinitions.json:"
       - cat imagedefinitions.json
-      - echo "Extracting port from Port_Mappings_0 variable: ${Port_Mappings_0}"
       - EXTRACTED_PORT=$(echo "${Port_Mappings_0}" | sed -n 's/.*containerPort=\([0-9]*\).*/\1/p')
       - echo "Successfully extracted port: ${EXTRACTED_PORT}"
-      
       - echo "Creating DYNAMIC appspec.yml..."
       # --- CORREÇÃO DEFINITIVA ---
       # Usamos o pipe (|) para que o YAML trate o comando inteiro como um texto literal,
