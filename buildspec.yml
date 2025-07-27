@@ -30,12 +30,14 @@ phases:
       - echo "Extracting port from Port_Mappings_0 variable: ${Port_Mappings_0}"
       - EXTRACTED_PORT=$(echo "${Port_Mappings_0}" | sed -n 's/.*containerPort=\([0-9]*\).*/\1/p')
       - echo "Successfully extracted port: ${EXTRACTED_PORT}"
+      
       - echo "Creating DYNAMIC appspec.yml..."
-      # --- CORRECTION ---
-      # Use the literal block scalar "|" to treat the entire command as a single string,
-      # preventing the YAML parser from misinterpreting the colon ":" character.
+      # --- CORREÇÃO DEFINITIVA ---
+      # Usamos o pipe (|) para que o YAML trate o comando inteiro como um texto literal,
+      # evitando o erro de parsing causado pelos dois-pontos (:) no conteúdo do appspec.
       - |
         printf 'version: 0.0\nResources:\n  - TargetService:\n      Type: AWS::ECS::Service\n      Properties:\n        TaskDefinition: "%s"\n        LoadBalancerInfo:\n          ContainerName: "%s"\n          ContainerPort: %s\n' "${TASK_DEFINITION_ARN_0}" "${CONTAINER_NAME_0}" "${EXTRACTED_PORT}" > appspec.yml
+      
       - echo "Content of appspec.yml:"
       - cat appspec.yml
 
