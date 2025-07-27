@@ -41,3 +41,6 @@ phases:
 artifacts:
   files:
     - imagedefinitions.json
+  # ADIÇÃO CRÍTICA: Descarta os caminhos do diretório original.
+  # Isso força o 'imagedefinitions.json' a ser colocado na raiz do arquivo .zip do artefato.
+  discard-paths: yes
